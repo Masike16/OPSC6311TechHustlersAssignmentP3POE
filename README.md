@@ -1,3 +1,7 @@
+# Presentation video link:
+15 June 2026
+https://youtu.be/oblCpsUgM2A
+
 # EasEBudget - Personal Budget Tracker Application
 
 EasEBudget is a modern, efficient Android Personal Budget Tracker app built with Kotlin and Jetpack Compose. It combines the best features from YNAB, Goodbudget, and Wallet by BudgetBakers to guide users toward better financial habits while providing powerful tools for analysis.
