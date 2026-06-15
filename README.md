@@ -4,7 +4,7 @@ https://youtu.be/oblCpsUgM2A
 
 # EasEBudget - Personal Budget Tracker Application
 
-EasEBudget is a modern, efficient Android Personal Budget Tracker app built with Kotlin and Jetpack Compose. It combines the best features from YNAB, Goodbudget, and Wallet by BudgetBakers to guide users toward better financial habits while providing powerful tools for analysis.
+EasEBudget is a comprehensive personal finance management application designed to help users track their spending, manage budgets, and visualize their financial health. Built specifically with the South African market in mind, it defaults to South African Rands (ZAR) and provides a user-friendly interface for daily financial tracking. EasEBudget is a modern, efficient Android Personal Budget Tracker app built with Kotlin and Jetpack Compose. It combines the best features from YNAB, Goodbudget, and Wallet by BudgetBakers to guide users toward better financial habits while providing powerful tools for analysis.
 
 ## Features
 
@@ -13,7 +13,7 @@ EasEBudget is a modern, efficient Android Personal Budget Tracker app built with
 - **Transaction Management**: Add, edit, delete transactions (income and expenses) with optional receipt photo attachment
 - **Category Management**: Predefined categories following the 50/30/20 rule (Bills, Needs, Wants) with custom category support
 - **Budget Goals System**: Monthly total budget, min/max spending goals, savings goals with visual progress indicators
-- **Reports & Analytics**: Bar charts, pie charts, and line graphs showing spending patterns with budget goal reference lines
+- **Reports & Analytics**: Bar charts, pie charts, and line graphs showing the spending spending patterns with budget goal reference lines
 - **Gamification Elements**: Badge system (First Steps, Budget Master, Consistent Logger, Savings Hero, etc.), streak tracking, reward points
 
 ### Custom Features
@@ -23,11 +23,11 @@ EasEBudget is a modern, efficient Android Personal Budget Tracker app built with
 - **Budget Alerts**: Push notifications when approaching budget limits
 
 ### Additional Features
-- **Dark Mode Support**: Material 3 theme with automatic dark mode switching
+- **Dark Mode Support**: Material 3 theme with automatic dark mode switching. Default is matches the phone system appearance
 - **Multi-language Support**: English, Afrikaans, isiZulu
 - **Receipt Photo Attachment**: Capture or select receipt photos for transactions
 - **Age of Money Metric**: Calculate average days between earnings and spendings
-- **Biometric Authentication**: Fingerprint/face recognition for quick login
+- **Biometric Authentication**: Fingerprint for quick login
 
 ## Technical Architecture
 
@@ -118,7 +118,7 @@ The admin panel provides comprehensive user management capabilities:
 - Username: `admin`
 - Password: `admin123`
 
-## Gamification System
+## Features a Gamification System
 
 ### Badges
 - **First Steps**: Add your first transaction
@@ -171,10 +171,12 @@ The project includes automated CI/CD pipeline:
 - APK generation
 - Artifact upload
 
-## Team Information
+## Team Information behind EaseBudget
 
 **Group Name:** Tech Hustlers
-**Members:** ST10451774, ST10452404, ST10452409
+**Members:** ST10451774(Liyema Masala)
+             ST10452404(Masike Jr Rasenyalo)
+             ST10452409(Acazia Ammon)
 
 ## References
 
