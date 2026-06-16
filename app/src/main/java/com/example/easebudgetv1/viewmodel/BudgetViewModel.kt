@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.compose.runtime.Immutable
@@ -16,6 +22,20 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/* 
+ * this viewmodel handles the budget screen. it manages categories and the monthly goals 
+ * users set for themselves. 
+ * 
+ * References:
+ * YNAB (2024) 'The Four Rules', You Need A Budget. Available at: https://www.ynab.com/the-four-rules (Accessed: 22 May 2024)
+ * Google (2024) 'State holders and UI State', Android Developers. Available at: https://developer.android.com/topic/architecture/ui-layer/stateholders (Accessed: 24 May 2024)
+ * Google (2024) 'Dependency injection with Hilt', Android Developers. Available at: https://developer.android.com/training/dependency-injection/hilt-android (Accessed: 24 May 2024)
+ * Kotlin (2024) 'Asynchronous flow', Kotlin Documentation. Available at: https://kotlinlang.org/docs/flow.html (Accessed: 25 May 2024)
+ * 
+ * basically we calculate the ready to assign amount by subtracting category limits 
+ * from the total budget goal. like zero based budgeting which is quite handy
+ */
+
 @Immutable
 data class BudgetUiState(
     val categoryGroups: Map<String, List<Category>> = emptyMap(),
@@ -31,6 +51,7 @@ data class BudgetUiState(
 
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
+    // using lazy injection here so the repo isn't created until we actually need it. helps with memory
     private val repositoryLazy: Lazy<AppRepository>
 ) : ViewModel() {
     
@@ -40,6 +61,7 @@ class BudgetViewModel @Inject constructor(
     private val _isAddCategoryDialogVisible = MutableStateFlow(false)
     private val _isBudgetGoalDialogVisible = MutableStateFlow(false)
 
+    // combining flows to get a single ui state. keeps the screen reactive and fast
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<BudgetUiState> = _userId
         .filterNotNull()
@@ -47,7 +69,7 @@ class BudgetViewModel @Inject constructor(
             val start = DateUtils.getStartOfMonth()
             val end = DateUtils.getEndOfMonth()
             
-            // Using a helper class to bundle filter states and avoid combine overloading issues
+            // grouping the dialog states together to make it easier to combine everything at once
             val dialogStateFlow = combine(
                 _selectedCategory,
                 _isAddCategoryDialogVisible,
@@ -56,16 +78,20 @@ class BudgetViewModel @Inject constructor(
                 Triple(selected, isAddVisible, isGoalVisible)
             }
 
+            // this big combine block pulls everything together from the repo for the current month
             combine(
                 repository.getCategoriesByUserId(userId),
                 repository.getBudgetGoalFlow(userId, DateUtils.getCurrentMonth(), DateUtils.getCurrentYear()),
                 repository.getCategorySpendingFlow(userId, start, end),
                 dialogStateFlow
             ) { cats, budgetGoal, spendingSummaries, dialogStates ->
+                // group cats by their group name like Daily or Fixed
                 val grouped = cats.groupBy { it.group }
+                // sum up the limits so we know how much of the budget is 'taken'
                 val totalLimits = cats.sumOf { it.budgetLimit ?: 0.0 }
                 val totalBudget = budgetGoal?.monthlyTotalBudget ?: 0.0
                 
+                // link spending data to the category ids so the UI can show progress bars
                 val spendingMap = cats.associate { cat ->
                     cat.id to (spendingSummaries.find { it.categoryName == cat.name }?.totalAmount ?: 0.0)
                 }
@@ -90,6 +116,7 @@ class BudgetViewModel @Inject constructor(
             initialValue = BudgetUiState(isLoading = true)
         )
     
+    // loads the data for the user and sets up default categories if they got none. basicly onboarding
     fun loadData(userId: Long) {
         if (_userId.value == userId) return
         _userId.value = userId
@@ -120,6 +147,7 @@ class BudgetViewModel @Inject constructor(
     fun showBudgetGoalDialog() { _isBudgetGoalDialogVisible.value = true }
     fun hideBudgetGoalDialog() { _isBudgetGoalDialogVisible.value = false }
     
+    // saves or updates a category in the database. handles both new and existing ones
     fun saveCategory(userId: Long, name: String, color: String, group: String, budgetLimit: Double?) {
         viewModelScope.launch(Dispatchers.IO) {
             val current = _selectedCategory.value
@@ -152,6 +180,7 @@ class BudgetViewModel @Inject constructor(
         }
     }
     
+    // sets the main budget goal for the current month. we use this to calc ready to assign
     fun setBudgetGoal(userId: Long, monthlyTotalBudget: Double, minSpendingGoal: Double, maxSpendingGoal: Double, savingsGoal: Double) {
         viewModelScope.launch(Dispatchers.IO) {
             val existingGoal = repository.getBudgetGoal(userId, DateUtils.getCurrentMonth(), DateUtils.getCurrentYear())
@@ -176,7 +205,7 @@ class BudgetViewModel @Inject constructor(
                 repository.insertBudgetGoal(newGoal)
             }
             
-            // Gamification: Goal Setter Badge
+            // award badge for setting the first goal. bit of gamification to keep users engaged
             if (repository.getAchievementByType(userId, "GOAL_SETTER") == null) {
                 repository.insertAchievement(Achievement(
                     userId = userId,
@@ -191,6 +220,7 @@ class BudgetViewModel @Inject constructor(
         }
     }
     
+    // setup some basic categories to help the user get started so the app doesnt look empty
     private suspend fun initializeDefaultCategories(userId: Long) {
         val defaultCategories = listOf(
             Category(userId = userId, name = "Food & Dining", color = "#FF9800", group = "Daily", isDefault = true),

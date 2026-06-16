@@ -1,5 +1,6 @@
 package com.example.easebudgetv1.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,17 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemKey
 import com.example.easebudgetv1.data.database.entities.AdminActionLog
 import com.example.easebudgetv1.data.database.entities.User
 import com.example.easebudgetv1.utils.CurrencyFormatter
@@ -31,6 +29,12 @@ import com.example.easebudgetv1.utils.DateUtils
 import com.example.easebudgetv1.viewmodel.AdminUserDetails
 import com.example.easebudgetv1.viewmodel.AdminViewModel
 import com.example.easebudgetv1.viewmodel.PlatformStats
+
+/* 
+ * This screen is for the admin dashboard where they can see stats and manage users
+ * 
+ * basically just a big list of users and some logs at the bottom. we use lazycolumn to keep it performant
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,12 +50,37 @@ fun AdminDashboardScreen(
     var showPasswordDialog by remember { mutableStateOf(false) }
     var newPassword by remember { mutableStateOf("") }
 
+    // Handle system back button to exit user details if its open
+    BackHandler(enabled = showUserDetails) {
+        viewModel.deselectUser()
+        showUserDetails = false
+    }
+    
+    // Explicitly handle back navigation to login screen to prevent app exit
+    BackHandler(enabled = !showUserDetails) {
+        onBackClick()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("System Console", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        if (showUserDetails && uiState.userDetails?.user != null) 
+                            "User: ${uiState.userDetails?.user?.username}" 
+                        else "System Console", 
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = {
+                        if (showUserDetails) {
+                            viewModel.deselectUser()
+                            showUserDetails = false
+                        } else {
+                            onBackClick()
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -84,11 +113,11 @@ fun AdminDashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    item {
+                    item(key = "platform_stats") {
                         ModernPlatformStatsCard(uiState.platformStats)
                     }
                     
-                    item {
+                    item(key = "users_header") {
                         Text(
                             text = "Registered Users",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -96,9 +125,12 @@ fun AdminDashboardScreen(
                         )
                     }
                     
+                    // CRITICAL FIX: Custom keying to prevent placeholder collision between lists
                     items(
                         count = pagedUsers.itemCount,
-                        key = pagedUsers.itemKey { it.id }
+                        key = { index -> 
+                            pagedUsers.peek(index)?.let { "user_${it.id}" } ?: "user_placeholder_$index"
+                        }
                     ) { index ->
                         pagedUsers[index]?.let { user ->
                             ModernUserCard(user = user, onClick = { 
@@ -108,7 +140,7 @@ fun AdminDashboardScreen(
                         }
                     }
 
-                    item {
+                    item(key = "logs_header") {
                         Text(
                             text = "Security Logs",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -116,9 +148,12 @@ fun AdminDashboardScreen(
                         )
                     }
 
+                    // CRITICAL FIX: Custom keying to prevent placeholder collision between lists
                     items(
                         count = pagedLogs.itemCount,
-                        key = pagedLogs.itemKey { it.id }
+                        key = { index -> 
+                            pagedLogs.peek(index)?.let { "log_${it.id}" } ?: "log_placeholder_$index"
+                        }
                     ) { index ->
                         pagedLogs[index]?.let { log ->
                             ModernAdminLogItem(log)
@@ -126,14 +161,14 @@ fun AdminDashboardScreen(
                     }
 
                     if (pagedUsers.loadState.append is LoadState.Loading || pagedLogs.loadState.append is LoadState.Loading) {
-                        item {
+                        item(key = "loading_indicator") {
                             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator()
                             }
                         }
                     }
                     
-                    item { Spacer(modifier = Modifier.height(32.dp)) }
+                    item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(32.dp)) }
                 }
             }
         }
@@ -276,10 +311,6 @@ fun ModernUserDetailsPanel(
     val user = userDetails.user ?: return
     
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
-            Text("Account Details", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-        }
         
         Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {

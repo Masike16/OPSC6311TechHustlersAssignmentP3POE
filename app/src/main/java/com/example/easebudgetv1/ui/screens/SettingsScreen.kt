@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import android.content.Context
@@ -29,6 +35,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.easebudgetv1.data.database.entities.User
 import com.example.easebudgetv1.viewmodel.SettingsViewModel
 
+/*
+ * This screen is for all the user preferences and account stuff.
+ * we have options for themes, notifications and data export.
+ * 
+ * References:
+ * Google (2024) 'Settings guide', Android Developers. Available at: https://developer.android.com/develop/ui/views/components/settings (Accessed: 24 May 2024)
+ * Material Design (2024) 'Lists: Controls', Material 3. Available at: https://m3.material.io/components/lists/guidelines#8674996b-0a7b-4028-8742-1264c74a008e (Accessed: 26 May 2024)
+ * 
+ * basically we used standard list items but made them look a bit more modern with surfaces and icons.
+ * the csv export is a cool feature we added to help users keep their records outside the app.
+ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -48,7 +66,7 @@ fun SettingsScreen(
         viewModel.loadUserData(userId)
     }
 
-    // Handle CSV Export
+    // handle csv export by sharing the file string.
     LaunchedEffect(uiState.exportData) {
         uiState.exportData?.let { csvData ->
             shareCsvFile(context, csvData)
@@ -114,7 +132,6 @@ fun SettingsScreen(
                         icon = Icons.Default.Palette,
                         onClick = { }
                     ) {
-                        // FIX: Use horizontalScroll to prevent squashing and ensure chips are visible
                         Row(
                             modifier = Modifier
                                 .horizontalScroll(rememberScrollState())
@@ -179,7 +196,6 @@ fun SettingsScreen(
                         subtitle = "Secure your records",
                         icon = Icons.Default.Backup,
                         onClick = { 
-                            // Requirement 8: Backup Placeholder
                             android.widget.Toast.makeText(context, "Backup feature coming soon", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     )
@@ -280,6 +296,7 @@ private fun shareCsvFile(context: Context, csvData: String) {
     context.startActivity(shareIntent)
 }
 
+// Shows basic info about the logged in user
 @Composable
 fun ModernProfileHeader(user: User?, onEditProfile: () -> Unit) {
     Surface(
@@ -361,6 +378,7 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
     }
 }
 
+// reusable item for the settings list. 
 @Composable
 fun ModernSettingItem(
     title: String,
@@ -416,7 +434,6 @@ fun ModernSettingItem(
             }
         }
         
-        // FIX: Move trailing content below the title if it exists to prevent squashing
         if (trailingContent != null) {
             Spacer(modifier = Modifier.height(12.dp))
             Box(modifier = Modifier.padding(start = 56.dp)) {

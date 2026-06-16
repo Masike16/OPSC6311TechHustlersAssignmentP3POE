@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.animation.*
@@ -31,9 +37,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.easebudgetv1.R
 import com.example.easebudgetv1.viewmodel.AuthViewModel
 
+/*
+ * this is the auth screen where users sign in or make a new account.
+ * we used a nice gradient to make the welcome feel more modern
+ * 
+ * References:
+ * Google (2024) 'Material Design 3', Android. Available at: https://m3.material.io/ (Accessed: 24 May 2024)
+ * Brush (2024) 'Gradients in Compose', Android Developers. Available at: https://developer.android.com/develop/ui/compose/graphics/draw/brush (Accessed: 25 May 2024)
+ * 
+ * it toggles between login and register mode so we dont need two screens. 
+ * saves space and keeps the logic in one place.
+ */
+
 @Composable
 fun AuthScreen(
-    onAuthSuccess: (Long) -> Unit,
+    onAuthSuccess: (Long, String) -> Unit,
     onAdminLoginClick: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -45,9 +63,10 @@ fun AuthScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    // if the auth is successful we navigate away to the main app
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess && uiState.currentUser != null) {
-            onAuthSuccess(uiState.currentUser!!.id)
+            onAuthSuccess(uiState.currentUser!!.id, uiState.currentUser!!.email)
         }
     }
     
@@ -73,7 +92,7 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
             
-            // App Logo - Fixed: Use drawable PNG instead of mipmap adaptive icon to prevent Compose crash
+            // App Logo - its inside a surface to give it a bit of depth
             Surface(
                 modifier = Modifier
                     .size(120.dp)
@@ -108,6 +127,7 @@ fun AuthScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
+            // card holds the input fields. looks cleaner this way.
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
@@ -224,6 +244,7 @@ fun AuthScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
+            // backdoor for the admin dashboard.
             TextButton(onClick = onAdminLoginClick) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(18.dp))

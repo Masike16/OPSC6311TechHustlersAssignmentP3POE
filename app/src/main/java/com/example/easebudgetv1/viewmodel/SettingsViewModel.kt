@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -12,6 +18,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/*
+ * this viewmodel is for the settings screen. it handles stuff like user profile
+ * updates, theme toggles and exporting data to csv format.
+ * 
+ * References:
+ * Google (2024) 'DataStore', Android Developers. Available at: https://developer.android.com/topic/libraries/architecture/datastore (Accessed: 24 May 2024)
+ * Kotlin (2024) 'StringBuilder', Kotlin Documentation. Available at: https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.text/-string-builder/ (Accessed: 26 May 2024)
+ * 
+ * we use the session manager to keep the login state and the repo for the DB stuff. 
+ * the export function basically just loops through transactions and builds a big string.
+ */
 
 data class SettingsUiState(
     val currentUser: User? = null,
@@ -33,6 +51,7 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    // loads user info from the database and syncs with the session manager
     fun loadUserData(userId: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -40,7 +59,7 @@ class SettingsViewModel @Inject constructor(
             val helpDisabled = sessionManager.isHelpDisabled(userId)
             _uiState.update { it.copy(
                 currentUser = user,
-                showGuideOnStartup = !helpDisabled, // Sync with SessionManager for UI consistency
+                showGuideOnStartup = !helpDisabled, 
                 isLoading = false
             ) }
         }
@@ -69,10 +88,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // toggles if the user wants to see the onboarding guide again
     fun toggleGuidePreference(show: Boolean) {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
-            // Requirement 2: Persist preference in both database and SessionManager
             sessionManager.setHelpDisabled(userId, !show)
             repository.updateUserGuidePreference(userId, show)
             _uiState.update { it.copy(showGuideOnStartup = show) }
@@ -91,6 +110,7 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(biometricEnabled = enabled) }
     }
 
+    // pulls transactions and converts them to a csv string for the user to download
     fun exportTransactionsToCsv() {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch(Dispatchers.IO) {
@@ -100,6 +120,7 @@ class SettingsViewModel @Inject constructor(
             
             transactions.forEach { tx ->
                 val date = DateUtils.formatDate(tx.date)
+                // we wrap fields in quotes just in case they have commas in the description
                 csvBuilder.append("\"$date\",\"${tx.description}\",${tx.amount},${tx.type},\"${tx.categoryId}\",\"${tx.startTime}\",\"${tx.endTime}\"\n")
             }
             
@@ -111,6 +132,7 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(exportData = null) }
     }
 
+    // sad to see them go but we have to delete all their data if they ask
     fun deleteAccount() {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {

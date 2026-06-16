@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.foundation.background
@@ -27,6 +33,18 @@ import com.example.easebudgetv1.data.database.entities.Category
 import com.example.easebudgetv1.data.database.entities.BudgetGoal
 import com.example.easebudgetv1.utils.CurrencyFormatter
 import com.example.easebudgetv1.viewmodel.BudgetViewModel
+
+/*
+ * this screen lets users plan their monthly budget. they can set goals and 
+ * manage their categories here. its basically the brain of the app
+ * 
+ * References:
+ * Google (2024) 'Compose layouts', Android Developers. Available at: https://developer.android.com/develop/ui/compose/layouts (Accessed: 24 May 2024)
+ * Material Design (2024) 'Cards', Material 3. Available at: https://m3.material.io/components/cards/overview (Accessed: 25 May 2024)
+ * 
+ * we used the lazycolumn to keep the list fast even if there are many categories. 
+ * the state is collected from the viewmodel so the ui always stays in sync.
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +84,7 @@ fun BudgetScreen(
                 CircularProgressIndicator()
             }
         } else {
+            // using lazy column for scrolling through categories. its efficient
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -83,6 +102,7 @@ fun BudgetScreen(
                     )
                 }
                 
+                // showing categories grouped by their group name like daily or lifestyle
                 uiState.categoryGroups.forEach { (groupName, categories) ->
                     item {
                         Text(
@@ -111,6 +131,7 @@ fun BudgetScreen(
         }
     }
     
+    // dialogs for adding or editing. we show them based on state from viewmodel
     if (uiState.isAddCategoryDialogVisible) {
         ModernAddEditCategoryDialog(
             category = uiState.selectedCategory,
@@ -132,6 +153,7 @@ fun BudgetScreen(
     }
 }
 
+// this card shows the main goal info. its colorful so it stands out
 @Composable
 fun ModernBudgetGoalCard(
     budgetGoal: BudgetGoal?,
@@ -194,6 +216,7 @@ fun ModernBudgetGoalCard(
     }
 }
 
+// card for each category. it has a progress bar to show how much is spent
 @Composable
 fun ModernCategoryCard(
     category: Category,
@@ -287,6 +310,7 @@ fun ModernCategoryCard(
     }
 }
 
+// dialog for category management. using vertical scroll so it doesnt break on small screens
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ModernAddEditCategoryDialog(
@@ -303,7 +327,6 @@ fun ModernAddEditCategoryDialog(
         shape = RoundedCornerShape(28.dp),
         title = { Text(if (category == null) "New Category" else "Edit Category", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)) },
         text = {
-            // FIX: Added verticalScroll to prevent squashing when content exceeds screen height (e.g., keyboard open)
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -327,7 +350,6 @@ fun ModernAddEditCategoryDialog(
                 )
                 
                 Text("Type", style = MaterialTheme.typography.labelLarge)
-                // FIX: Use FlowRow to prevent squashing and let chips wrap naturally
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -361,6 +383,7 @@ fun ModernAddEditCategoryDialog(
     )
 }
 
+// this dialog handles the monthly goal. we take total income and savings goal
 @Composable
 fun ModernBudgetGoalDialog(
     budgetGoal: BudgetGoal?,
@@ -376,7 +399,6 @@ fun ModernBudgetGoalDialog(
         shape = RoundedCornerShape(28.dp),
         title = { Text("Monthly Goal", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)) },
         text = {
-            // FIX: Added verticalScroll to prevent squashing
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)

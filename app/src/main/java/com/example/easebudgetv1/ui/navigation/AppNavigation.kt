@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -24,6 +23,16 @@ import androidx.navigation.compose.rememberNavController
 import com.example.easebudgetv1.ui.screens.*
 import com.example.easebudgetv1.utils.SessionManager
 import com.example.easebudgetv1.viewmodel.AuthViewModel
+
+/* 
+ * this file handles all the navigation routs for the app.
+ * basically uses the NavHost to swap screens based on where the user clicks
+ * 
+ * References:
+ * Google (2024) 'Navigation with Compose', Android Developers. Available at: https://developer.android.com/jetpack/compose/navigation (Accessed: 25 May 2024)
+ * 
+ * we used a Scaffold here to show the bottom bar only on the main screens to keep it clean.
+ */
 
 sealed class Screen(val route: String, val title: String) {
     object Auth : Screen("auth", "Welcome")
@@ -46,6 +55,7 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
     var currentUserId by rememberSaveable { mutableLongStateOf(0L) }
+    var currentUserEmail by rememberSaveable { mutableStateOf("") }
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -61,6 +71,7 @@ fun AppNavigation(
     }
     val bottomNavRoutes = remember { bottomNavScreens.map { it.route }.toSet() }
     
+    // only show the bottom bar if the user is logged in and on a main screen
     val showBottomBar by remember(currentDestination, currentUserId) {
         derivedStateOf { 
             currentDestination?.route in bottomNavRoutes && currentUserId != 0L 
@@ -130,8 +141,9 @@ fun AppNavigation(
         ) {
             composable(Screen.Auth.route) {
                 AuthScreen(
-                    onAuthSuccess = { userId -> 
+                    onAuthSuccess = { userId: Long, email: String -> 
                         currentUserId = userId
+                        currentUserEmail = email
                         if (sessionManager.isHelpDisabled(userId)) {
                             navController.navigate(Screen.Dashboard.route) {
                                 popUpTo(Screen.Auth.route) { inclusive = true }
@@ -150,7 +162,7 @@ fun AppNavigation(
                 val authViewModel: AuthViewModel = hiltViewModel()
                 GuideScreen(
                     userId = currentUserId,
-                    onDismiss = { showAgain ->
+                    onDismiss = { showAgain: Boolean ->
                         // Persist preference to both Session and Database
                         authViewModel.updateGuidePreference(currentUserId, showAgain)
                         navController.navigate(Screen.Dashboard.route) {
@@ -163,16 +175,25 @@ fun AppNavigation(
             composable(Screen.AdminLogin.route) {
                 AdminLoginScreen(
                     onAdminLoginSuccess = {
+                        // Navigate to Dashboard but keep Auth in backstack so we can go back
                         navController.navigate(Screen.AdminDashboard.route) {
-                            popUpTo(Screen.Auth.route) { inclusive = true }
+                            popUpTo(Screen.AdminLogin.route) { inclusive = true }
                         }
                     },
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { 
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(Screen.Auth.route) { inclusive = true }
+                        }
+                    }
                 )
             }
             
             composable(Screen.AdminDashboard.route) {
-                AdminDashboardScreen(onBackClick = { navController.popBackStack() })
+                AdminDashboardScreen(onBackClick = { 
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Auth.route) { inclusive = true }
+                    }
+                })
             }
             
             composable(Screen.Dashboard.route) {
@@ -209,6 +230,7 @@ fun AppNavigation(
                     onLogout = {
                         sessionManager.logout()
                         currentUserId = 0L
+                        currentUserEmail = ""
                         navController.navigate(Screen.Auth.route) {
                             // Clear entire backstack to prevent back navigation after logout
                             popUpTo(0) { inclusive = true }
@@ -219,7 +241,7 @@ fun AppNavigation(
             }
             
             composable(Screen.SharedAccounts.route) {
-                SharedAccountsScreen(userId = currentUserId, userEmail = "")
+                SharedAccountsScreen(userId = currentUserId, userEmail = currentUserEmail)
             }
         }
     }

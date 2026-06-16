@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.animation.*
@@ -43,6 +49,18 @@ import com.patrykandpatrick.vico.core.axis.AxisPosition
 import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+
+/*
+ * the reports screen is where we show the user all the pretty charts.
+ * it helps them see where their money is actually going.
+ * 
+ * References:
+ * Vico (2024) 'Vico: A powerful charting library for Android', GitHub. Available at: https://github.com/patrykandpatrick/vico (Accessed: 22 May 2024)
+ * Google (2024) 'Canvas in Compose', Android Developers. Available at: https://developer.android.com/develop/ui/compose/graphics/draw/canvas (Accessed: 25 May 2024)
+ * 
+ * we use the Vico library for the line and bar charts cause its really good for compose.
+ * I also made a custom pie chart using the canvas api just to show how the spending is split.
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,6 +110,7 @@ fun ReportsScreen(
                 contentPadding = PaddingValues(16.dp)
             ) {
                 item {
+                    // period selector lets users swap between today, this week, month etc
                     ModernPeriodSelector(
                         selectedPeriod = uiState.selectedPeriod,
                         onPeriodSelected = { 
@@ -181,6 +200,7 @@ fun ReportsScreen(
     }
 }
 
+// this chart shows how they performed over the last few months
 @Composable
 fun BudgetHealthHistoryChart(history: List<MonthlyHealth>) {
     val entries = history.mapIndexed { index, health -> 
@@ -310,6 +330,7 @@ fun DailySpendingTrendChart(dailyData: List<com.example.easebudgetv1.data.databa
     }
 }
 
+// visual indicator for how well the user is sticking to their budget
 @Composable
 fun BudgetHealthVisualization(budgetGoal: BudgetGoal?, currentSpending: Double) {
     if (budgetGoal == null) return
@@ -367,6 +388,7 @@ fun BudgetHealthVisualization(budgetGoal: BudgetGoal?, currentSpending: Double) 
     }
 }
 
+// shows how much they spent vs what they planned for each category
 @Composable
 fun SpendingVsGoalsChart(items: List<CategorySpending>) {
     val spentEntries = items.mapIndexed { index, item -> entryOf(index.toFloat(), item.amount.toFloat()) }
@@ -427,6 +449,7 @@ private fun LegendItem(color: Color, label: String) {
     }
 }
 
+// custom donut chart using canvas. looks much cleaner than a regular pie chart
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SpendingPieChart(items: List<CategorySpending>) {
@@ -636,6 +659,7 @@ fun ModernReportStatCard(
     }
 }
 
+// prediction logic to show the user what to expect. helps them plan ahead.
 @Composable
 fun ModernPredictionCard(predictedSpending: Double) {
     Surface(

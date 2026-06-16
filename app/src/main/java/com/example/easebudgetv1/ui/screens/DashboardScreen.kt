@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.foundation.background
@@ -33,6 +39,19 @@ import com.example.easebudgetv1.utils.DateUtils
 import com.example.easebudgetv1.utils.GamificationUtils
 import com.example.easebudgetv1.viewmodel.CategorySpending
 import com.example.easebudgetv1.viewmodel.DashboardViewModel
+
+/*
+ * the main landing page of the app. shows a summary of everything.
+ * we used material 3 cards and headers to make it look modern and clean
+ * 
+ * References:
+ * Material Design (2024) 'Material 3', Google. Available at: https://m3.material.io/ (Accessed: 24 May 2024)
+ * Android Developers (2024) 'Compose Layouts', Google. Available at: https://developer.android.com/develop/ui/compose/layouts (Accessed: 25 May 2024)
+ * Kotlin (2024) 'Flow', JetBrains. Available at: https://kotlinlang.org/docs/flow.html (Accessed: 25 May 2024)
+ * 
+ * it uses a lazycolumn so it doesnt lag when scrolling through transactions.
+ * the FAB at the bottom right is for quick entry since thats the main thing people do
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,6 +266,7 @@ fun DashboardScreen(
     }
 }
 
+// shows how much the user has saved vs their goal. uses a progress bar
 @Composable
 fun SavingsGoalCard(goal: Double, progress: Float) {
     Card(
@@ -368,6 +388,7 @@ fun HelpItem(icon: ImageVector, title: String, description: String) {
     }
 }
 
+// this is the main header showing balance. its the first thing users see
 @Composable
 fun BalanceHeader(balance: Double, income: Double, expenses: Double, readyToAssign: Double) {
     Column {
@@ -489,6 +510,7 @@ fun HeaderStat(label: String, amount: Double, icon: ImageVector, color: Color) {
     }
 }
 
+// this card shows monthly limit progress. turns red if you go over
 @Composable
 fun ModernSpendingCard(monthlySpending: Double, budgetLimit: Double) {
     val progress = if (budgetLimit > 0) (monthlySpending / budgetLimit).coerceIn(0.0, 1.0).toFloat() else 0f
@@ -529,6 +551,7 @@ fun ModernSpendingCard(monthlySpending: Double, budgetLimit: Double) {
     }
 }
 
+// individual transaction item for the list. shows income in green and expense in red
 @Composable
 fun ModernTransactionItem(transaction: Transaction) {
     Surface(

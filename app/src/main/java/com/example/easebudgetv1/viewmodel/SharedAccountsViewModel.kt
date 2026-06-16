@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.compose.runtime.Immutable
@@ -24,7 +30,6 @@ data class SharedAccountsUiState(
 
 @HiltViewModel
 class SharedAccountsViewModel @Inject constructor(
-    // Optimization: Lazy injection defers repository initialization
     private val repositoryLazy: Lazy<AppRepository>
 ) : ViewModel() {
     
@@ -38,7 +43,6 @@ class SharedAccountsViewModel @Inject constructor(
         id to email
     }.filter { (id, email) -> id != null && email != null }
     .flatMapLatest { (id, email) ->
-        // Optimization: Single pipeline to reduce redundant DB flow subscriptions
         combine(
             repository.getSharedAccountsByUserId(id!!),
             repository.getPendingRequestsByEmail(email!!),
@@ -52,7 +56,7 @@ class SharedAccountsViewModel @Inject constructor(
             )
         }
     }
-    .flowOn(Dispatchers.Default) // Optimization: Computation stays off main thread
+    .flowOn(Dispatchers.Default)
     .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -110,9 +114,7 @@ class SharedAccountsViewModel @Inject constructor(
     
     fun removeLinkedAccount(accountId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.deleteSharedAccount(
-                repository.getSharedAccountById(accountId) ?: return@launch
-            )
+            repository.deleteSharedAccount(accountId)
         }
     }
     

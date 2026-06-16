@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -17,7 +23,7 @@ fun DateRangePickerDialog(
 ) {
     val dateRangePickerState = rememberDateRangePickerState()
     
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f),
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -25,7 +31,8 @@ fun DateRangePickerDialog(
         Surface(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 DateRangePicker(
@@ -33,8 +40,10 @@ fun DateRangePickerDialog(
                     modifier = Modifier.weight(1f),
                     title = { Text("Select Period", modifier = Modifier.padding(16.dp)) },
                     headline = { 
+                        val start = dateRangePickerState.selectedStartDateMillis
+                        val end = dateRangePickerState.selectedEndDateMillis
                         Text(
-                            "Selected Range", 
+                            text = if (start != null && end != null) "Range Selected" else "Select Range",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.headlineSmall
                         ) 
@@ -42,7 +51,7 @@ fun DateRangePickerDialog(
                     showModeToggle = false
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

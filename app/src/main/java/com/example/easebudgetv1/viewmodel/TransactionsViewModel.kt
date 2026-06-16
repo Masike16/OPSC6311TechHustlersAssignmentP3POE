@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.compose.runtime.Immutable
@@ -19,6 +25,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/* 
+ * viewmodel for transactions list. handles filterin by date and category.
+ * 
+ * References:
+ * Google (2024) 'Paging Library overview', Android Developers. Available at: https://developer.android.com/topic/libraries/architecture/paging/v3-pms (Accessed: 24 May 2024)
+ * Google (2024) 'Paging data caching', Android Developers. Available at: https://developer.android.com/topic/libraries/architecture/paging/v3-transform#cachedin (Accessed: 26 May 2024)
+ * Kotlin (2024) 'Flow debounce', Kotlin Documentation. Available at: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/debounce.html (Accessed: 26 May 2024)
+ * 
+ * we used the paging lib to make sure even if there is thousands of logs it dont lag the phone.
+ * it also tracks streaks for when the user adds stuff daily. basically keeping them engaged.
+ */
 
 enum class DateFilter {
     TODAY, WEEK, MONTH, ALL, CUSTOM
@@ -51,6 +69,8 @@ class TransactionsViewModel @Inject constructor(
     private val _isAddEditDialogVisible = MutableStateFlow(false)
     private val _selectedTransaction = MutableStateFlow<Transaction?>(null)
 
+    // this is the main flow for the paginated list. 
+    // it updates automatically when any filter changes. debounce helps so we dont spam the DB
     @OptIn(ExperimentalCoroutinesApi::class)
     val transactionsPaged: Flow<PagingData<Transaction>> = _userId
         .filterNotNull()
@@ -79,6 +99,7 @@ class TransactionsViewModel @Inject constructor(
         }
         .cachedIn(viewModelScope)
     
+    // combining everything into one state flow for the screen.
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TransactionsUiState> = _userId
         .filterNotNull()
@@ -158,6 +179,7 @@ class TransactionsViewModel @Inject constructor(
         _selectedTransaction.value = null
     }
     
+    // logic to add a new transaction and trigger badge checks. 
     fun addTransaction(
         userId: Long,
         categoryId: Long?,
@@ -184,16 +206,17 @@ class TransactionsViewModel @Inject constructor(
             )
             repository.insertTransaction(transaction)
             
-            // Gamification: Update Streak
+            // update the logging streak if they loggin everyday.
             updateLoggingStreak(userId)
             
-            // Gamification: Check Badges
+            // see if they earned any badges like for using a receipt photo
             checkBadges(userId, receiptPath != null)
             
             _isAddEditDialogVisible.value = false
         }
     }
     
+    // basic logic to keep track of consecutive days of logging.
     private suspend fun updateLoggingStreak(userId: Long) {
         val streakType = "LOGGING"
         val existingStreak = repository.getStreak(userId, streakType)
@@ -207,7 +230,7 @@ class TransactionsViewModel @Inject constructor(
             val oneDayMs = 24 * 60 * 60 * 1000L
             
             if (diff in oneDayMs..(2 * oneDayMs)) {
-                // Consecutive day
+                // its a consecutive day. good job user
                 val newCurrent = existingStreak.currentStreak + 1
                 repository.updateStreak(existingStreak.copy(
                     currentStreak = newCurrent,
@@ -215,14 +238,15 @@ class TransactionsViewModel @Inject constructor(
                     lastActivityDate = now
                 ))
             } else if (diff > 2 * oneDayMs) {
-                // Streak broken
+                // streak is broken unfortunately. resets to 1
                 repository.updateStreak(existingStreak.copy(currentStreak = 1, lastActivityDate = now))
             }
         }
     }
 
+    // checks for achievements when a transaction is added to the system
     private suspend fun checkBadges(userId: Long, hasReceipt: Boolean) {
-        // First Transaction Badge
+        // give them the first transaction badge so they feel welcome
         if (repository.getAchievementByType(userId, "FIRST_TRANSACTION") == null) {
             repository.insertAchievement(Achievement(
                 userId = userId,
@@ -233,7 +257,7 @@ class TransactionsViewModel @Inject constructor(
             ))
         }
         
-        // Receipt Keeper Badge
+        // badge for saving a photo of the receipt. keeps them organized
         if (hasReceipt && repository.getAchievementByType(userId, "RECEIPT_KEEPER") == null) {
             repository.insertAchievement(Achievement(
                 userId = userId,
@@ -244,7 +268,7 @@ class TransactionsViewModel @Inject constructor(
             ))
         }
         
-        // Check for 10 transactions
+        // reward consistency after 10 logs
         repository.getTransactionsByUserId(userId).first().let { transactions ->
             if (transactions.size >= 10 && repository.getAchievementByType(userId, "CONSISTENT_LOGGER") == null) {
                 repository.insertAchievement(Achievement(

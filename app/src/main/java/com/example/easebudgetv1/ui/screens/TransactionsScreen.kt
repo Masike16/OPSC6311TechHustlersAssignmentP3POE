@@ -1,7 +1,15 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
+import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -68,7 +77,7 @@ fun TransactionsScreen(
     if (showDatePickerRange) {
         DateRangePickerDialog(
             onDismiss = { showDatePickerRange = false },
-            onDateRangeSelected = { start, end ->
+            onDateRangeSelected = { start: Long, end: Long ->
                 viewModel.setDateFilter(DateFilter.CUSTOM, start to end)
                 showDatePickerRange = false
             }
@@ -186,7 +195,7 @@ fun TransactionsScreen(
             transaction = uiState.selectedTransaction,
             categories = uiState.categories,
             onDismiss = { viewModel.hideDialog() },
-            onSave = { amount, type, categoryId, date, description, receiptPath, startTime, endTime ->
+            onSave = { amount: Double, type: TransactionType, categoryId: Long?, date: Long, description: String, receiptPath: String?, startTime: String?, endTime: String? ->
                 if (uiState.selectedTransaction != null) {
                     viewModel.updateTransaction(
                         uiState.selectedTransaction!!.copy(
@@ -415,7 +424,7 @@ fun ModernAddEditTransactionDialog(
     var amount by remember { mutableStateOf(transaction?.amount?.toString() ?: "") }
     var type by remember { mutableStateOf(transaction?.type ?: TransactionType.EXPENSE) }
     var description by remember { mutableStateOf(transaction?.description ?: "") }
-    var date by remember { mutableStateOf(transaction?.date ?: System.currentTimeMillis()) }
+    var date by remember { mutableLongStateOf(transaction?.date ?: System.currentTimeMillis()) }
     var selectedCategoryId by remember { mutableStateOf(transaction?.categoryId) }
     var startTime by remember { mutableStateOf(transaction?.startTime) }
     var endTime by remember { mutableStateOf(transaction?.endTime) }
@@ -424,7 +433,6 @@ fun ModernAddEditTransactionDialog(
     var expanded by remember { mutableStateOf(false) }
     val selectedCategory = categories.find { it.id == selectedCategoryId }
 
-    // Validation State (Requirement 5)
     val isValid = remember(amount, description) {
         ValidationUtils.isValidAmount(amount.toDoubleOrNull() ?: 0.0) && 
         ValidationUtils.isValidDescription(description)
@@ -433,7 +441,13 @@ fun ModernAddEditTransactionDialog(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { receiptPath = it.toString() }
+        uri?.let { 
+            val filename = "receipt_gallery_${System.currentTimeMillis()}.webp"
+            val path = ImageUtils.copyUriToInternalStorage(context, it, filename)
+            if (path != null) {
+                receiptPath = path
+            }
+        }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -445,6 +459,16 @@ fun ModernAddEditTransactionDialog(
             if (path != null) {
                 receiptPath = path
             }
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        } else {
+            Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -463,7 +487,6 @@ fun ModernAddEditTransactionDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Type Switcher
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -506,7 +529,6 @@ fun ModernAddEditTransactionDialog(
                     isError = amount.isNotEmpty() && !ValidationUtils.isValidAmount(amount.toDoubleOrNull() ?: 0.0)
                 )
 
-                // INNOVATION: Amount Seekbar (Requirement 5)
                 val amountFloat = amount.toFloatOrNull() ?: 0f
                 Slider(
                     value = amountFloat.coerceIn(0f, 10000f),
@@ -616,7 +638,14 @@ fun ModernAddEditTransactionDialog(
                     Text("Receipt Attachment", style = MaterialTheme.typography.labelMedium)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
-                            onClick = { cameraLauncher.launch(null) },
+                            onClick = { 
+                                val permissionCheckResult = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                                if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                                    cameraLauncher.launch(null)
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {

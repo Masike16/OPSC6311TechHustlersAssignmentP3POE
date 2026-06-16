@@ -3,6 +3,7 @@ package com.example.easebudgetv1.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Build
 import java.io.File
 import java.io.FileOutputStream
@@ -28,6 +29,24 @@ object ImageUtils {
             
             outputStream.flush()
             outputStream.close()
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Copies an image from a Uri to internal storage for persistent access.
+     */
+    fun copyUriToInternalStorage(context: Context, uri: Uri, filename: String): String? {
+        return try {
+            val file = File(context.filesDir, filename)
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                FileOutputStream(file).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
             file.absolutePath
         } catch (e: Exception) {
             e.printStackTrace()

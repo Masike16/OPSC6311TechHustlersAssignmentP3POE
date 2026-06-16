@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.foundation.background
@@ -28,6 +34,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.easebudgetv1.viewmodel.AdminAuthState
 import com.example.easebudgetv1.viewmodel.AdminViewModel
 
+/*
+ * this screen handles how admins log into the system console. 
+ * it uses some Material 3 components to make it look modern and clean.
+ * 
+ * References:
+ * Google (2024) 'Material Design 3', Material.io. Available at: https://m3.material.io/ (Accessed: 24 May 2024)
+ * Android Developers (2024) 'Scaffold', Android Developers. Available at: https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary#Scaffold (Accessed: 25 May 2024)
+ * 
+ * basically just takes a username and password and checks it against some hardcoded vals in the vm
+ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminLoginScreen(
@@ -41,6 +58,7 @@ fun AdminLoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     
+    // effect to navigate away when login is successful
     LaunchedEffect(uiState.authState) {
         if (uiState.authState is AdminAuthState.Success) {
             onAdminLoginSuccess()
@@ -84,6 +102,7 @@ fun AdminLoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // icon box for some visual flair
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -179,7 +198,7 @@ fun AdminLoginScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                // DISPLAY ADMIN CREDENTIALS (As requested)
+                // DISPLAY ADMIN CREDENTIALS for easier testing
                 Surface(
                     color = MaterialTheme.colorScheme.error.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(12.dp)

@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.foundation.background
@@ -16,11 +22,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+/*
+ * this is the screen that gives new users a quick tour of how the app works.
+ * we tried to keep it simple so that users don't get bored before they even start.
+ * 
+ * References:
+ * Interaction Design Foundation (2024) 'Onboarding', IxDF. Available at: https://www.interaction-design.org/literature/topics/onboarding (Accessed: 22 May 2024)
+ * Material Design (2024) 'Onboarding', Google. Available at: https://m3.material.io/foundations/onboarding (Accessed: 23 May 2024)
+ * 
+ * it uses a vertical scroll in case the screen is small or text is long. 
+ * the checkbox at the bottom lets them skip it next time they open the app.
+ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuideScreen(
     userId: Long,
-    onDismiss: (Boolean) -> Unit // Returns whether to show again
+    onDismiss: (Boolean) -> Unit // returns whether to show again
 ) {
     var dontShowAgain by remember { mutableStateOf(false) }
 
@@ -104,6 +122,7 @@ fun GuideScreen(
     }
 }
 
+// individual item for the guide. looks consistent with the rest of the app
 @Composable
 fun GuideItem(
     icon: ImageVector,

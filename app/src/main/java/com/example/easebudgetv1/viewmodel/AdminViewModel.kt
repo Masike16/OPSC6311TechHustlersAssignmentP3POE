@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.compose.runtime.Immutable
@@ -5,14 +11,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.example.easebudgetv1.data.database.entities.Achievement
-import com.example.easebudgetv1.data.database.entities.AdminActionLog
-import com.example.easebudgetv1.data.database.entities.BudgetGoal
-import com.example.easebudgetv1.data.database.entities.SharedAccount
-import com.example.easebudgetv1.data.database.entities.Transaction
-import com.example.easebudgetv1.data.database.entities.TransactionType
-import com.example.easebudgetv1.data.database.entities.User
+import com.example.easebudgetv1.data.database.entities.*
 import com.example.easebudgetv1.data.repository.AppRepository
+import com.example.easebudgetv1.utils.DateUtils
+import com.example.easebudgetv1.utils.HashUtils
 import dagger.Lazy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -59,7 +61,6 @@ sealed class AdminAuthState {
 
 @HiltViewModel
 class AdminViewModel @Inject constructor(
-    // Optimization: Lazy injection defers repository heavy lifting
     private val repositoryLazy: Lazy<AppRepository>
 ) : ViewModel() {
     
@@ -69,7 +70,6 @@ class AdminViewModel @Inject constructor(
     private val _authState = MutableStateFlow<AdminAuthState>(AdminAuthState.Idle)
     private val _isLoading = MutableStateFlow(false)
 
-    // Optimization: Paging flows handle their own resource management
     val usersPaged: Flow<PagingData<User>> = repository.getAllUsersPaged().cachedIn(viewModelScope)
     val adminLogsPaged: Flow<PagingData<AdminActionLog>> = repository.getAdminActionLogPaged().cachedIn(viewModelScope)
 
@@ -83,15 +83,15 @@ class AdminViewModel @Inject constructor(
             repository.getAllTransactionsSumFlow(),
             repository.getAllExpensesSumFlow(),
             repository.getTotalBadgesEarnedFlow()
-        ) { userCount, totalSum, expensesSum, totalBadges ->
+        ) { userCount: Int, totalSum: Double?, expensesSum: Double?, totalBadges: Int ->
             PlatformStats(
                 totalUsers = userCount,
                 totalMoneyTracked = totalSum ?: 0.0,
-                avgSpendingPerUser = if (userCount > 0) (expensesSum ?: 0.0) / userCount else 0.0,
+                avgSpendingPerUser = if (userCount > 0) (expensesSum ?: 0.0) / userCount.toDouble() else 0.0,
                 totalBadgesEarned = totalBadges
             )
         }
-    ) { base, stats ->
+    ) { base: AdminBaseState, stats: PlatformStats ->
         base to stats
     }.flatMapLatest { (base, stats) ->
         val userId = base.userId
@@ -104,13 +104,29 @@ class AdminViewModel @Inject constructor(
                 repository.getSharedAccountsByUserId(userId)
             ) { user, transactions, budgetGoals, achievements, sharedAccounts ->
                 
-                // One-pass calculation for specific user metrics
-                var income = 0.0
-                var expenses = 0.0
+                val startOfMonth = DateUtils.getStartOfMonth()
+                val endOfMonth = DateUtils.getEndOfMonth()
+                val currentMonth = DateUtils.getCurrentMonth()
+                val currentYear = DateUtils.getCurrentYear()
+                
+                var totalIncome = 0.0
+                var totalExpenses = 0.0
+                var monthlyExpenses = 0.0
+                
                 transactions.forEach {
-                    if (it.type == TransactionType.INCOME) income += it.amount
-                    else expenses += it.amount
+                    if (it.type == TransactionType.INCOME) {
+                        totalIncome += it.amount
+                    } else {
+                        totalExpenses += it.amount
+                        if (it.date in startOfMonth..endOfMonth) {
+                            monthlyExpenses += it.amount
+                        }
+                    }
                 }
+                
+                val goal = budgetGoals.find { it.month == currentMonth && it.year == currentYear }
+                val budgetLimit = goal?.maxSpendingGoal ?: goal?.monthlyTotalBudget ?: 0.0
+                val currentBalance = maxOf(goal?.monthlyTotalBudget ?: 0.0, totalIncome) - totalExpenses
                 
                 AdminUiState(
                     selectedUser = user,
@@ -120,9 +136,9 @@ class AdminViewModel @Inject constructor(
                         budgetGoals = budgetGoals,
                         achievements = achievements,
                         sharedAccounts = sharedAccounts,
-                        currentBalance = income - expenses,
-                        monthlySpending = expenses,
-                        isOverspending = false 
+                        currentBalance = currentBalance,
+                        monthlySpending = monthlyExpenses,
+                        isOverspending = budgetLimit > 0.0 && monthlyExpenses > budgetLimit
                     ),
                     platformStats = stats,
                     authState = base.authState,
@@ -167,7 +183,8 @@ class AdminViewModel @Inject constructor(
     
     fun changeUserPassword(userId: Long, newPassword: String) {
         viewModelScope.launch {
-            repository.updateUserPassword(userId, newPassword)
+            val hashedPassword = HashUtils.sha256(newPassword)
+            repository.updateUserPassword(userId, hashedPassword)
             logAdminAction("PASSWORD_CHANGE", userId, "Changed password")
         }
     }

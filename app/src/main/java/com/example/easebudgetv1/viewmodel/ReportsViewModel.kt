@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.compose.runtime.Immutable
@@ -71,9 +77,7 @@ class ReportsViewModel @Inject constructor(
                 repository.getMonthlyExpenseHistoryFlow(userId),
                 repository.getBudgetGoalsByUserId(userId)
             ) { income, expenses, history, goals ->
-                // Calculate Health History
                 val healthHistory = history.map { summary ->
-                    // Expected format of monthLabel is "YYYY-MM"
                     val parts = summary.monthLabel.split("-")
                     val year = parts.getOrNull(0)?.toIntOrNull() ?: 0
                     val month = parts.getOrNull(1)?.toIntOrNull() ?: 0
@@ -91,7 +95,7 @@ class ReportsViewModel @Inject constructor(
                     )
                 }
                 
-                Quad(income ?: 0.0, expenses ?: 0.0, history, healthHistory)
+                Quad(income, expenses, history, healthHistory)
             }
 
             val periodBoundsFlow = combine(_selectedPeriod, _customDateRange) { period, customRange ->
@@ -103,11 +107,11 @@ class ReportsViewModel @Inject constructor(
             }
 
             val periodDataFlow = periodBoundsFlow.flatMapLatest { bounds ->
-                val summariesFlow = repository.getCategorySpendingFlow(userId, bounds.first, bounds.second)
-                val categoriesFlow = repository.getCategoriesByUserId(userId)
-                val dailyFlow = repository.getDailySpendingFlow(userId, bounds.first, bounds.second)
-                
-                combine(summariesFlow, categoriesFlow, dailyFlow) { summaries, categories, daily ->
+                combine(
+                    repository.getCategorySpendingFlow(userId, bounds.first, bounds.second),
+                    repository.getCategoriesByUserId(userId),
+                    repository.getDailySpendingFlow(userId, bounds.first, bounds.second)
+                ) { summaries, categories, daily ->
                     Triple(summaries, categories, daily)
                 }
             }
@@ -136,7 +140,9 @@ class ReportsViewModel @Inject constructor(
                     )
                 }.filter { it.amount > 0 || it.budgetLimit > 0 }.sortedByDescending { it.amount }
                 
-                val predicted = if (history.isNotEmpty()) history.map { it.totalAmount }.average() else 0.0
+                val predicted = if (history.isNotEmpty()) {
+                    history.map { it.totalAmount }.sum() / history.size.toDouble()
+                } else 0.0
                 
                 ReportsUiState(
                     budgetGoal = budgetGoal,

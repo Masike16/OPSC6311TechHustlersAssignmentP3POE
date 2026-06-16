@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.ui.screens
 
 import androidx.compose.foundation.background
@@ -31,6 +37,18 @@ import com.example.easebudgetv1.data.database.entities.Streak
 import com.example.easebudgetv1.utils.GamificationUtils
 import com.example.easebudgetv1.viewmodel.GoalsViewModel
 
+/*
+ * this screen is for gamification showing off all the badges and streaks.
+ * it makes it feel like a game so people actually want to save money.
+ * 
+ * References:
+ * Zichermann, G. and Cunningham, C. (2023) 'Gamification by Design', O'Reilly Media. Available at: https://www.oreilly.com/library/view/gamification-by-design/ (Accessed: 22 May 2024)
+ * Google (2024) 'Lazy grids', Android Developers. Available at: https://developer.android.com/develop/ui/compose/lists#lazy-vertical-grid (Accessed: 24 May 2024)
+ * 
+ * we used a lazyverticalgrid here so we can show badges side by side in a nice grid. 
+ * it looks really professional like those high end finance apps.
+ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalsScreen(
@@ -59,6 +77,7 @@ fun GoalsScreen(
                 CircularProgressIndicator()
             }
         } else {
+            // using a grid for the layout. looks way better than just a list
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier
@@ -69,6 +88,7 @@ fun GoalsScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // top stats for age of money and points
                 item {
                     ModernGoalStatCard(
                         title = "Age of Money",
@@ -89,6 +109,7 @@ fun GoalsScreen(
                     )
                 }
                 
+                // showing the streaks to keep the user motivated
                 item {
                     val streak = uiState.streaks.find { it.streakType == "BUDGET_CHECKIN" }
                     ModernStreakCard("Check-in", streak)
@@ -107,6 +128,7 @@ fun GoalsScreen(
                     )
                 }
                 
+                // loop through the achievements the user has earned
                 items(
                     items = uiState.achievements,
                     key = { it.id }
@@ -122,6 +144,7 @@ fun GoalsScreen(
     }
 }
 
+// simple card for showing stats. uses icons to make it look fancy
 @Composable
 fun ModernGoalStatCard(
     title: String,
@@ -156,6 +179,7 @@ fun ModernGoalStatCard(
     }
 }
 
+// streak card showing how many days in a row they've been active
 @Composable
 fun ModernStreakCard(label: String, streak: Streak?) {
     Card(
@@ -194,6 +218,7 @@ fun ModernStreakCard(label: String, streak: Streak?) {
     }
 }
 
+// card for individual badges with description and points earned
 @Composable
 fun ModernBadgeCard(achievement: Achievement) {
     Surface(

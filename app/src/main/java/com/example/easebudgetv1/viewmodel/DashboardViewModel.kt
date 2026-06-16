@@ -1,3 +1,9 @@
+/*
+ * OPSC6311 Assignment POE
+ * Tech Hustlers
+ * 
+ * We certify that this is our own work.
+ */
 package com.example.easebudgetv1.viewmodel
 
 import androidx.compose.runtime.Immutable
@@ -16,6 +22,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/*
+ * Viewmodel for the dashboard. it handles most of the logic for the home screen
+ * we used some ideas from ynab to help with the budgetin logic here.
+ * 
+ * References:
+ * YNAB (2024) 'Give Every Dollar a Job', You Need A Budget. Available at: https://www.ynab.com/guide/essential-guide-to-budgeting (Accessed: 24 May 2024)
+ * Google (2024) 'ViewModel Overview', Android Developers. Available at: https://developer.android.com/topic/libraries/architecture/viewmodel (Accessed: 24 May 2024)
+ * Kotlin (2024) 'StateFlow and SharedFlow', Kotlin Documentation. Available at: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/ (Accessed: 25 May 2024)
+ * 
+ * it pulls together transactions, categories and goals into one state for the UI
+ */
 
 @Immutable
 data class DashboardUiState(
@@ -43,6 +61,8 @@ class DashboardViewModel @Inject constructor(
     private val repository get() = repositoryLazy.get()
     private val _userId = MutableStateFlow<Long?>(null)
 
+    // main ui state flow. it combines a lot of stuff like categories and transactions
+    // using flatMapLatest so we always get the newest data for the user
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DashboardUiState> = _userId
         .filterNotNull()
@@ -56,6 +76,7 @@ class DashboardViewModel @Inject constructor(
             val allTransactionsFlow = repository.getTransactionsByUserId(userId)
             val achievementsFlow = repository.getAchievementsByUserId(userId)
             
+            // combine the monthly totals for income and spending
             val monthlyDataFlow = combine(
                 repository.getMonthlyIncomeFlow(userId, start, end),
                 repository.getMonthlySpendingFlow(userId, start, end),
@@ -82,11 +103,12 @@ class DashboardViewModel @Inject constructor(
                 val totalCategoryLimits = categories.sumOf { it.budgetLimit ?: 0.0 }
                 val savingsGoalValue = goal?.savingsGoal ?: 0.0
                 
+                // calculate how old the money is
                 val age = GamificationUtils.calculateAgeOfMoney(allTransactions)
                 val netSavings = maxOf(0.0, monthlyInc - monthlyExp)
                 val savingsProgressValue = if (savingsGoalValue > 0) (netSavings / savingsGoalValue).coerceIn(0.0, 1.0).toFloat() else 0f
                 
-                // Trigger badges asynchronously
+                // check for any new badges in the background
                 checkBadges(userId, age, monthlyExp, goal?.maxSpendingGoal ?: 0.0, netSavings, savingsGoalValue)
 
                 val topCats = categories.map { cat ->
@@ -104,7 +126,7 @@ class DashboardViewModel @Inject constructor(
                     transactions = recentTransactions,
                     totalIncome = monthlyInc,
                     totalExpenses = monthlyExp,
-                    // INNOVATION: Balance = Budgeted Amount - Expenses (YNAB-style)
+                    // calculate balance based on budget vs actual spending
                     currentBalance = maxOf(budgetedIncome, monthlyInc) - monthlyExp,
                     monthlySpending = monthlyExp,
                     budgetLimit = goal?.maxSpendingGoal ?: 0.0,
@@ -129,6 +151,7 @@ class DashboardViewModel @Inject constructor(
         _userId.value = userId
     }
 
+    // method to award badges based on the user progress
     private fun checkBadges(userId: Long, age: Int, spent: Double, limit: Double, netSavings: Double, savingsGoal: Double) {
         viewModelScope.launch(Dispatchers.IO) {
             if (age >= 7 && repository.getAchievementByType(userId, "AGE_OF_MONEY_7") == null) {
@@ -150,7 +173,7 @@ class DashboardViewModel @Inject constructor(
                 ))
             }
             
-            // Savings Hero badge
+            // award savings hero badge if they meet the goal
             if (savingsGoal > 0 && netSavings >= savingsGoal && repository.getAchievementByType(userId, "SAVINGS_HERO") == null) {
                 repository.insertAchievement(Achievement(
                     userId = userId,
@@ -161,7 +184,7 @@ class DashboardViewModel @Inject constructor(
                 ))
             }
             
-            // Check for Budget Master badge at end of month
+            // budget master badge check near end of month
             if (limit > 0 && System.currentTimeMillis() > DateUtils.getEndOfMonth() - 86400000) {
                  if (spent <= limit && repository.getAchievementByType(userId, "BUDGET_MASTER") == null) {
                     repository.insertAchievement(Achievement(
