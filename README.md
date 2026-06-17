@@ -1,6 +1,6 @@
 # Presentation video link:
-15 June 2026
-https://youtu.be/oblCpsUgM2A
+17 June 2026
+https://drive.google.com/file/d/1sz9CPPJ0XJr6oyK63hK4xli5q6VpL3eZ/view?usp=drivesdk
 
 # EasEBudget - Personal Budget Tracker Application
 
